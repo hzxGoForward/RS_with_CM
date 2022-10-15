@@ -77,11 +77,11 @@ void gf256_memswap(void *GF256_RESTRICT vx, void *GF256_RESTRICT vy, int bytes);
 
 #ifdef _MSC_VER
     #pragma warning(push)
-    #pragma warning(disable : 4324) // warning C4324: 'gf256_ctx' : structure was padded due to __declspec(align())
+    #pragma warning(disable : 4324) // warning C4324: 'GF256CTX' : structure was padded due to __declspec(align())
 #endif                          // _MSC_VER
 
 /// The context object stores tables required to perform library calculations
-class gf256_ctx
+class GF256CTX
 {
 public:
     /// We require memory to be aligned since the SIMD instructions benefit from
@@ -112,9 +112,9 @@ public:
     /// Polynomial used
     unsigned Polynomial;
 
-    static gf256_ctx* getGF256Ctx()
+    static GF256CTX* getGF256Ctx()
     {
-        static gf256_ctx* ctx_ptr = new gf256_ctx();
+        static GF256CTX* ctx_ptr = new GF256CTX();
         return ctx_ptr;
     }
 
@@ -126,15 +126,15 @@ public:
 
         Thread-safety / Usage Notes:
 
-        It is perfectly safe and encouraged to use a gf256_ctx object from multiple
+        It is perfectly safe and encouraged to use a GF256CTX object from multiple
         threads.  The gf256_init() is relatively expensive and should only be done
         once, though it will take less than a millisecond.
 
-        The gf256_ctx object must be aligned to 16 byte boundary.
+        The GF256CTX object must be aligned to 16 byte boundary.
         Simply tag the object with GF256_ALIGNED to achieve this.
 
         Example:
-           static GF256_ALIGNED gf256_ctx TheGF256Context;
+           static GF256_ALIGNED GF256CTX TheGF256Context;
            gf256_init(&TheGF256Context, 0);
 
         Returns 0 on success and other values on failure.
@@ -217,7 +217,7 @@ public:
 
 
 private:
-    gf256_ctx(){
+    GF256CTX(){
         gf256_init();
     };
 };

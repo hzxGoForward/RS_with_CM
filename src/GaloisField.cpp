@@ -34,7 +34,7 @@ struct SelfTestBuffersT
 };
 static GF256_ALIGNED SelfTestBuffersT m_SelfTestBuffers;
 
-bool gf256_ctx::gf256_self_test()
+bool GF256CTX::gf256_self_test()
 {
     if ((uintptr_t)m_SelfTestBuffers.A % GF256_ALIGN_BYTES != 0)
         return false;
@@ -189,7 +189,7 @@ static void _cpuid(unsigned int cpu_info[4U], const unsigned int cpu_info_type)
 
 #endif // defined(GF256_TARGET_MOBILE)
 
-void gf256_ctx::gf256_architecture_init()
+void GF256CTX::gf256_architecture_init()
 {
     printf("enters gf256_architecture_init() function\n");
 
@@ -220,7 +220,7 @@ void gf256_ctx::gf256_architecture_init()
 // Context Object
 
 // Context object for GF(2^^8) math
-// GF256_ALIGNED gf256_ctx GF256Ctx;
+// GF256_ALIGNED GF256CTX GF256Ctx;
 // static bool Initialized = false;
 
 
@@ -237,7 +237,7 @@ static const uint8_t GF256_GEN_POLY[GF256_GEN_POLY_COUNT] = {
 static const int kDefaultPolynomialIndex = 3;
 
 // Select which polynomial to use
-void gf256_ctx::gf256_poly_init(int polynomialIndex)
+void GF256CTX::gf256_poly_init(int polynomialIndex)
 {
     if (polynomialIndex < 0 || polynomialIndex >= GF256_GEN_POLY_COUNT)
         polynomialIndex = kDefaultPolynomialIndex;
@@ -250,7 +250,7 @@ void gf256_ctx::gf256_poly_init(int polynomialIndex)
 // Exponential and Log Tables
 
 // Construct EXP and LOG tables from polynomial
-void gf256_ctx::gf256_explog_init()
+void GF256CTX::gf256_explog_init()
 {
     unsigned poly = Polynomial;
     uint8_t* exptab = GF256_EXP_TABLE;
@@ -281,7 +281,7 @@ void gf256_ctx::gf256_explog_init()
 // Multiply and Divide Tables
 
 // Initialize MUL and DIV tables using LOG and EXP tables
-void gf256_ctx::gf256_muldiv_init()
+void GF256CTX::gf256_muldiv_init()
 {
     // Allocate table memory 65KB x 2
     uint8_t* m = GF256_MUL_TABLE;
@@ -320,7 +320,7 @@ void gf256_ctx::gf256_muldiv_init()
 // Inverse Table
 
 // Initialize INV table using DIV table
-void gf256_ctx::gf256_inv_init()
+void GF256CTX::gf256_inv_init()
 {
     for (int x = 0; x < 256; ++x)
         GF256_INV_TABLE[x] = gf256_div(1, static_cast<uint8_t>(x));
@@ -331,7 +331,7 @@ void gf256_ctx::gf256_inv_init()
 // Square Table
 
 // Initialize SQR table using MUL table
-void gf256_ctx::gf256_sqr_init()
+void GF256CTX::gf256_sqr_init()
 {
     for (int x = 0; x < 256; ++x)
         GF256_SQR_TABLE[x] = gf256_mul(static_cast<uint8_t>(x), static_cast<uint8_t>(x));
@@ -430,7 +430,7 @@ void gf256_ctx::gf256_sqr_init()
 */
 
 // Initialize the multiplication tables using gf256_mul()
-void gf256_ctx::gf256_mul_mem_init()
+void GF256CTX::gf256_mul_mem_init()
 {
     // Reuse aligned self test buffers to load table data
     uint8_t* lo = m_SelfTestBuffers.A;
@@ -487,7 +487,7 @@ static bool IsExpectedEndian()
     return 0x01020304 == type.IntValue;
 }
 
-int gf256_ctx::gf256_init()
+int GF256CTX::gf256_init()
 {
 
     if (!IsExpectedEndian())
@@ -511,7 +511,7 @@ int gf256_ctx::gf256_init()
 //------------------------------------------------------------------------------
 // Operations
 
-void gf256_ctx::gf256_add_mem(void * GF256_RESTRICT vx,
+void GF256CTX::gf256_add_mem(void * GF256_RESTRICT vx,
                               const void * GF256_RESTRICT vy, int bytes)
 {
     GF256_M128 * GF256_RESTRICT x16 = reinterpret_cast<GF256_M128 *>(vx);
@@ -635,7 +635,7 @@ void gf256_ctx::gf256_add_mem(void * GF256_RESTRICT vx,
     }
 }
 
-void gf256_ctx::gf256_add2_mem(void * GF256_RESTRICT vz, const void * GF256_RESTRICT vx,
+void GF256CTX::gf256_add2_mem(void * GF256_RESTRICT vz, const void * GF256_RESTRICT vx,
                                const void * GF256_RESTRICT vy, int bytes)
 {
     GF256_M128 * GF256_RESTRICT z16 = reinterpret_cast<GF256_M128*>(vz);
@@ -717,7 +717,7 @@ void gf256_ctx::gf256_add2_mem(void * GF256_RESTRICT vz, const void * GF256_REST
     }
 }
 
-void gf256_ctx::gf256_addset_mem(void * GF256_RESTRICT vz, const void * GF256_RESTRICT vx,
+void GF256CTX::gf256_addset_mem(void * GF256_RESTRICT vz, const void * GF256_RESTRICT vx,
                                  const void * GF256_RESTRICT vy, int bytes)
 {
     GF256_M128 * GF256_RESTRICT z16 = reinterpret_cast<GF256_M128*>(vz);
@@ -817,7 +817,7 @@ void gf256_ctx::gf256_addset_mem(void * GF256_RESTRICT vz, const void * GF256_RE
     }
 }
 
-void gf256_ctx::gf256_mul_mem(void * GF256_RESTRICT vz, const void * GF256_RESTRICT vx, uint8_t y, int bytes)
+void GF256CTX::gf256_mul_mem(void * GF256_RESTRICT vz, const void * GF256_RESTRICT vx, uint8_t y, int bytes)
 {
     // Use a single if-statement to handle special cases
     if (y <= 1)
@@ -952,7 +952,7 @@ void gf256_ctx::gf256_mul_mem(void * GF256_RESTRICT vz, const void * GF256_RESTR
     }
 }
 
-void gf256_ctx::gf256_muladd_mem(void * GF256_RESTRICT vz, uint8_t y,
+void GF256CTX::gf256_muladd_mem(void * GF256_RESTRICT vz, uint8_t y,
                                  const void * GF256_RESTRICT vx, int bytes)
 {
     // Use a single if-statement to handle special cases

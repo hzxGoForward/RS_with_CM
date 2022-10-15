@@ -82,7 +82,7 @@
 // Note that for x_i == x_0, this will return 1, so it is better to unroll out the first row.
 static GF256_FORCE_INLINE unsigned char GetMatrixElement(unsigned char x_i, unsigned char x_0, unsigned char y_j)
 {
-    auto gf256CtxPtr = gf256_ctx::getGF256Ctx();
+    auto gf256CtxPtr = GF256CTX::getGF256Ctx();
     return gf256CtxPtr->gf256_div(gf256CtxPtr->gf256_add(y_j, x_0), gf256CtxPtr->gf256_add(x_i, y_j));
 }
 
@@ -96,7 +96,7 @@ void ReedSolomonEncoder::EncodeOneDataBlock(
     int recoveryBlockIndex,      // Return value from GetRecoveryBlockIndex()
     void* recoveryBlock)         // Output recovery block
 {
-    auto gf256CtxPtr = gf256_ctx::getGF256Ctx();
+    auto gf256CtxPtr = GF256CTX::getGF256Ctx();
     // If only one block of input data,
     if (params.OriginalCount == 1)
     {
@@ -242,7 +242,7 @@ bool ReedSolomonDecoder::Initialize(EncoderParams& params, DataBlock* blocks)
 
 void ReedSolomonDecoder::DecodeM1()
 {
-    auto gf256CtxPtr = gf256_ctx::getGF256Ctx();
+    auto gf256CtxPtr = GF256CTX::getGF256Ctx();
     // XOR all other blocks into the recovery block
     uint8_t* outBlock = static_cast<uint8_t*>(Recovery[0]->Block);
     const uint8_t* inBlock = nullptr;
@@ -283,7 +283,7 @@ void ReedSolomonDecoder::GenerateLDUDecomposition(uint8_t* matrix_L, uint8_t* di
     // Modified for practical use.  I folded the diagonal parts of U/L matrices into the
     // diagonal one to reduce the number of multiplications to perform against the input data,
     // and organized the triangle matrices in memory to allow for faster SSE3 GF multiplications.
-    auto gf256CtxPtr = gf256_ctx::getGF256Ctx();
+    auto gf256CtxPtr = GF256CTX::getGF256Ctx();
     // Matrix size NxN
     const int N = RecoveryCount;
 
@@ -386,7 +386,7 @@ void ReedSolomonDecoder::GenerateLDUDecomposition(uint8_t* matrix_L, uint8_t* di
 
 void ReedSolomonDecoder::Decode()
 {
-    auto gf256CtxPtr = gf256_ctx::getGF256Ctx();
+    auto gf256CtxPtr = GF256CTX::getGF256Ctx();
     // Matrix size is NxN, where N is the number of recovery blocks used.
     const int N = RecoveryCount;
 
