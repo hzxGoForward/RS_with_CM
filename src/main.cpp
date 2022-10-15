@@ -26,29 +26,15 @@
 	POSSIBILITY OF SUCH DAMAGE.
 */
 
-// #ifdef _MSC_VER
-//     #pragma warning(push)
-//     #pragma warning(disable: 4530) // warning C4530: C++ exception handler used, but unwind semantics are not enabled. Specify /EHsc
-// #endif
-
 #include <iostream>
 using namespace std;
 
-// #ifdef _MSC_VER
-//     #pragma warning(pop)
-// #endif
-
-#include "cm256.h"
-
-// #ifdef _WIN32
-// #define WIN32_LEAN_AND_MEAN
-// #include <Windows.h>
-// #endif
+#include "ReedSolomon.h"
 
 #include <chrono>
 #include <thread>
 
-void initializeBlocks(cm256_block originals[256], int blockCount, int blockBytes)
+void initializeBlocks(DataBlock originals[256], int blockCount, int blockBytes)
 {
     for (int i = 0; i < blockCount; ++i)
     {
@@ -61,7 +47,7 @@ void initializeBlocks(cm256_block originals[256], int blockCount, int blockBytes
     }
 }
 
-bool validateSolution(cm256_block_t* blocks, int blockCount, int blockBytes)
+bool validateSolution(DataBlock* blocks, int blockCount, int blockBytes)
 {
     uint8_t seen[256] = { 0 };
 
@@ -99,12 +85,7 @@ bool validateSolution(cm256_block_t* blocks, int blockCount, int blockBytes)
 
 bool ExampleFileUsage()
 {
-    if (cm256_init())
-    {
-        return false;
-    }
-
-    cm256_encoder_params params;
+    EncoderParams params;
 
     // Number of bytes per file block
     params.BlockBytes = 1296;
@@ -126,7 +107,7 @@ bool ExampleFileUsage()
     }
 
     // Pointers to data
-    cm256_block blocks[256];
+    DataBlock blocks[256];
     for (int i = 0; i < params.OriginalCount; ++i)
     {
         blocks[i].Block = originalFileData + i * params.BlockBytes;
@@ -136,7 +117,7 @@ bool ExampleFileUsage()
     uint8_t* recoveryBlocks = new uint8_t[params.RecoveryCount * params.BlockBytes];
 
     // Generate recovery data
-    if (cm256_encode(params, blocks, recoveryBlocks))
+    if (ReedSolomonEncoder::Encode(params, blocks, recoveryBlocks))
     {
         return false;
     }
@@ -144,18 +125,18 @@ bool ExampleFileUsage()
     // Initialize the indices
     for (int i = 0; i < params.OriginalCount; ++i)
     {
-        blocks[i].Index = cm256_get_original_block_index(params, i);
+        blocks[i].Index = ReedSolomonEncoder::GetOriginalBlockIndex(params, i);
     }
 
     //// Simulate loss of data, substituting a recovery block in its place ////
     for (int i = 0; i < params.RecoveryCount && i < params.OriginalCount; ++i)
     {
         blocks[i].Block = recoveryBlocks + params.BlockBytes * i; // First recovery block
-        blocks[i].Index = cm256_get_recovery_block_index(params, i); // First recovery block index
+        blocks[i].Index = ReedSolomonEncoder::GetRecoveryBlockIndex(params, i); // First recovery block index
     }
     //// Simulate loss of data, substituting a recovery block in its place ////
-
-    if (cm256_decode(params, blocks))
+    ReedSolomonDecoder rsDecoder;
+    if (rsDecoder.Decode(params, blocks))
     {
         return false;
     }
@@ -221,23 +202,13 @@ bool CheckMemSwap()
 
 bool FinerPerfTimingTest()
 {
-// #ifdef _WIN32
-//     ::SetPriorityClass(::GetCurrentProcess(), REALTIME_PRIORITY_CLASS);
-//     ::SetThreadPriority(::GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
-// #endif
-
     std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
-    if (cm256_init())
-    {
-        return false;
-    }
-
-    cm256_block blocks[256];
+    DataBlock blocks[256];
 
     uint64_t tsum = 0;
 
-    cm256_encoder_params params;
+    EncoderParams params;
     params.BlockBytes = 1296;
     params.OriginalCount = 100;
     params.RecoveryCount = 30;
@@ -246,6 +217,7 @@ bool FinerPerfTimingTest()
     unsigned char* recoveryData = new unsigned char[256 * params.BlockBytes];
 
     const int trials = 1000;
+    ReedSolomonDecoder rsDecoder;
     for (int trial = 0; trial < trials; ++trial)
     {
         for (int i = 0; i < params.BlockBytes * params.OriginalCount; ++i)
@@ -258,7 +230,7 @@ bool FinerPerfTimingTest()
             blocks[i].Block = orig_data + i * params.BlockBytes;
         }
 
-        if (cm256_encode(params, blocks, recoveryData))
+        if (ReedSolomonEncoder::Encode(params, blocks, recoveryData))
         {
             return false;
         }
@@ -266,19 +238,19 @@ bool FinerPerfTimingTest()
         // Initialize the indices
         for (int i = 0; i < params.OriginalCount; ++i)
         {
-            blocks[i].Index = cm256_get_original_block_index(params, i);
+            blocks[i].Index = ReedSolomonEncoder::GetOriginalBlockIndex(params, i);
         }
 
         //// Simulate loss of data, substituting a recovery block in its place ////
         for (int i = 0; i < params.RecoveryCount && i < params.OriginalCount; ++i)
         {
             blocks[i].Block = recoveryData + params.BlockBytes * i; // First recovery block
-            blocks[i].Index = cm256_get_recovery_block_index(params, i); // First recovery block index
+            blocks[i].Index = ReedSolomonEncoder::GetRecoveryBlockIndex(params, i); // First recovery block index
         }
         //// Simulate loss of data, substituting a recovery block in its place ////
 
         const auto start = std::chrono::system_clock::now();
-        if (cm256_decode(params, blocks))
+        if (rsDecoder.Decode(params, blocks))
         {
             return false;
         }
@@ -317,10 +289,10 @@ bool FinerPerfTimingTest()
 
 bool BulkPerfTesting()
 {
-    if (cm256_init())
-    {
-        return false;
-    }
+    // if (cm256_init())
+    // {
+    //     return false;
+    // }
 
     static const int MaxBlockBytes = 10000; // multiple of 10
 
@@ -328,15 +300,16 @@ bool BulkPerfTesting()
 
     unsigned char* recoveryData = new unsigned char[256 * MaxBlockBytes];
 
-    cm256_block blocks[256];
-
+    DataBlock blocks[256];
+    
+    ReedSolomonDecoder rsDecoder;
     for (int blockBytes = 8 * 162; blockBytes <= MaxBlockBytes; blockBytes *= 10)
     {
         for (int originalCount = 1; originalCount < 256; ++originalCount)
         {
             for (int recoveryCount = 1; recoveryCount <= 1 + originalCount / 2 && recoveryCount <= 256 - originalCount; ++recoveryCount)
             {
-                cm256_encoder_params params;
+                EncoderParams params;
                 params.BlockBytes = blockBytes;
                 params.OriginalCount = originalCount;
                 params.RecoveryCount = recoveryCount;
@@ -350,7 +323,7 @@ bool BulkPerfTesting()
 
                 {
                     const auto t0 = std::chrono::system_clock::now();
-                    if (cm256_encode(params, blocks, recoveryData))
+                    if (ReedSolomonEncoder::Encode(params, blocks, recoveryData))
                     {
                         cout << "Encoder error" << endl;
                         return false;
@@ -368,20 +341,20 @@ bool BulkPerfTesting()
                 // Fill in indices
                 for (int i = 0; i < originalCount; ++i)
                 {
-                    blocks[i].Index = cm256_get_original_block_index(params, i);
+                    blocks[i].Index = ReedSolomonEncoder::GetOriginalBlockIndex(params, i);
                 }
 
                 for (int ii = 0; ii < recoveryCount; ++ii)
                 {
                     int erasure_index = recoveryCount - ii - 1;
                     blocks[ii].Block = recoveryData + erasure_index * blockBytes;
-                    blocks[ii].Index = cm256_get_recovery_block_index(params, erasure_index);
+                    blocks[ii].Index = ReedSolomonEncoder::GetRecoveryBlockIndex(params, erasure_index);
                 }
 
                 {
                     const auto t0 = std::chrono::system_clock::now();
-
-                    if (cm256_decode(params, blocks))
+                    
+                    if (rsDecoder.Decode(params, blocks))
                     {
                         cout << "Decoder error" << endl;
                         return false;
