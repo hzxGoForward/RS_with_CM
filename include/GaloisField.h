@@ -25,48 +25,27 @@
 //------------------------------------------------------------------------------
 // Platform/Architecture
 
-#if defined(__ARM_ARCH) || defined(__ARM_NEON) || defined(__ARM_NEON__)
-#if !defined IOS
-#define LINUX_ARM
-#endif
-#endif
-
-#if defined(ANDROID) || defined(IOS) || defined(LINUX_ARM) || defined(__powerpc__) || defined(__s390__)
-#define GF256_TARGET_MOBILE
-#endif // ANDROID
-
 #if defined(__AVX2__) && (!defined(_MSC_VER) || _MSC_VER >= 1900)
-#define GF256_TRY_AVX2 /* 256-bit */
-#include <immintrin.h>
-#define GF256_ALIGN_BYTES 32
+    #define GF256_TRY_AVX2 /* 256-bit */
+    #include <immintrin.h>
+    #define GF256_ALIGN_BYTES 32
 #else // __AVX2__
-#define GF256_ALIGN_BYTES 16
+    #define GF256_ALIGN_BYTES 16
 #endif // __AVX2__
 
 #if !defined(GF256_TARGET_MOBILE)
-#include <tmmintrin.h> // SSSE3: _mm_shuffle_epi8
-#include <emmintrin.h> // SSE2
+    #include <tmmintrin.h> // SSSE3: _mm_shuffle_epi8
+    #include <emmintrin.h> // SSE2
 #endif                 // GF256_TARGET_MOBILE
 
-#if defined(__ARM_NEON) || defined(__ARM_NEON__)
-#include <arm_neon.h>
-#define GF256_TRY_NEON
-#endif
 
 // Compiler-specific 128-bit SIMD register keyword
-#if defined(GF256_TARGET_MOBILE)
-#if defined(GF256_TRY_NEON)
-#define GF256_M128 uint8x16_t
-#else
-#define GF256_M128 uint64_t
-#endif // GF256_TRY_NEON
-#else  // GF256_TARGET_MOBILE
 #define GF256_M128 __m128i
-#endif // GF256_TARGET_MOBILE
+
 
 // Compiler-specific 256-bit SIMD register keyword
 #ifdef GF256_TRY_AVX2
-#define GF256_M256 __m256i
+    #define GF256_M256 __m256i
 #endif
 
 // Compiler-specific C++11 restrict keyword
@@ -74,17 +53,17 @@
 
 // Compiler-specific force inline keyword
 #ifdef _MSC_VER
-#define GF256_FORCE_INLINE inline __forceinline
+    #define GF256_FORCE_INLINE inline __forceinline
 #else
-#define GF256_FORCE_INLINE inline __attribute__((always_inline))
+    #define GF256_FORCE_INLINE inline __attribute__((always_inline))
 #endif
 
 // Compiler-specific alignment keyword
 // Note: Alignment only matters for ARM NEON where it should be 16
 #ifdef _MSC_VER
-#define GF256_ALIGNED __declspec(align(GF256_ALIGN_BYTES))
+    #define GF256_ALIGNED __declspec(align(GF256_ALIGN_BYTES))
 #else // _MSC_VER
-#define GF256_ALIGNED __attribute__((aligned(GF256_ALIGN_BYTES)))
+    #define GF256_ALIGNED __attribute__((aligned(GF256_ALIGN_BYTES)))
 #endif // _MSC_VER
 
 //------------------------------------------------------------------------------
@@ -97,8 +76,8 @@ void gf256_memswap(void *GF256_RESTRICT vx, void *GF256_RESTRICT vy, int bytes);
 // GF(256) Context
 
 #ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable : 4324) // warning C4324: 'gf256_ctx' : structure was padded due to __declspec(align())
+    #pragma warning(push)
+    #pragma warning(disable : 4324) // warning C4324: 'gf256_ctx' : structure was padded due to __declspec(align())
 #endif                          // _MSC_VER
 
 /// The context object stores tables required to perform library calculations
@@ -241,22 +220,10 @@ private:
     gf256_ctx(){
         gf256_init();
     };
-
-	// ~gf256_ctx() { };
-	// gf256_ctx(const gf256_ctx&);
-	// gf256_ctx& operator=(const gf256_ctx&);
-    // static bool Initialized_;
 };
 
 #ifdef _MSC_VER
-#pragma warning(pop)
+    #pragma warning(pop)
 #endif // _MSC_VER
-
-// extern gf256_ctx GF256Ctx;
-
-
-
-//------------------------------------------------------------------------------
-// Misc Operations
 
 #endif // GaloisField_H
